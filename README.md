@@ -22,7 +22,7 @@ An advanced automation tool for penetration testers that streamlines NetExec cre
 pip install netexec
 
 # Clone this repository
-git clone https://github.com/marcoatv/netexec-enum
+git clone https://github.com/marcoatv/netexec-enum.git
 
 ## Usage
 
