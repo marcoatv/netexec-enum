@@ -10,7 +10,6 @@ import itertools
 import ipaddress
 from collections import defaultdict
 
-# Color codes for terminal output
 class Colors:
     RED = '\033[91m'
     GREEN = '\033[92m'
@@ -23,10 +22,8 @@ class Colors:
     UNDERLINE = '\033[4m'
     RESET = '\033[0m'
 
-# Available protocols in NetExec
 PROTOCOLS = ['ssh', 'mssql', 'smb', 'winrm', 'wmi', 'ldap', 'vnc', 'ftp', 'rdp']
 
-# Protocols to use for initial credential validation
 VALIDATION_PROTOCOLS = ['smb', 'winrm', 'ldap']
 
 def get_enum_params(target, username):
@@ -117,7 +114,6 @@ def get_admin_modules(target, username):
         'rdp': [],
     }
 
-# Additional modules for null authentication
 NULL_AUTH_MODULES = {
     'smb': [
         ['--rid-brute']
@@ -170,7 +166,6 @@ def parse_targets(target_input):
     targets = []
     
     if os.path.isfile(target_input):
-        # Read from file
         try:
             with open(target_input, 'r') as f:
                 for line in f:
@@ -181,14 +176,12 @@ def parse_targets(target_input):
             print_error(f"Error reading targets file: {e}")
             sys.exit(1)
     else:
-        # Check if it contains commas (comma-separated list)
         if ',' in target_input:
             ip_list = [ip.strip() for ip in target_input.split(',')]
             for ip in ip_list:
-                if ip:  # Skip empty strings
+                if ip:  
                     targets.extend(parse_targets(ip))
         else:
-            # Check if it's CIDR notation
             try:
                 network = ipaddress.ip_network(target_input, strict=False)
                 if network.num_addresses > 1:
@@ -196,7 +189,6 @@ def parse_targets(target_input):
                 else:
                     targets = [str(network.network_address)]
             except ValueError:
-                # Single IP
                 try:
                     ipaddress.ip_address(target_input)
                     targets = [target_input]
@@ -226,17 +218,13 @@ def load_hashlist(filename):
             for line in f:
                 line = line.strip()
                 if line and not line.startswith('#'):
-                    # Handle different hash formats
                     if ':' in line:
-                        # Format: username:hash or user:id:hash
                         parts = line.split(':')
                         if len(parts) >= 2:
-                            # Take the last part as hash (handles user:id:hash format)
                             hash_val = parts[-1]
                             if hash_val:
                                 hashes.append(hash_val)
                     else:
-                        # Just the hash
                         hashes.append(line)
         
         print_info(f"Loaded {len(hashes)} hashes from {filename}")
@@ -252,11 +240,9 @@ def run_netexec_command(protocol, target, username, password, hash_val=None, add
     """Run a NetExec command and return the result"""
     cmd = ['netexec', protocol, target]
     
-    # Add local auth flag if specified
     if local_auth:
         cmd.append('--local-auth')
     
-    # Add credentials if provided
     if username:
         if hash_val:
             cmd.extend(['-u', username, '-H', hash_val])
@@ -265,10 +251,8 @@ def run_netexec_command(protocol, target, username, password, hash_val=None, add
         else:
             cmd.extend(['-u', username, '-p', ''])
     else:
-        # Try null authentication
         cmd.extend(['-u', '', '-p', ''])
     
-    # Add additional parameters
     if additional_params:
         cmd.extend(additional_params)
     
@@ -291,7 +275,6 @@ def check_netexec_installed():
 def is_successful_connection(returncode, stdout, stderr):
     """Determine if the connection was successful based on output"""
     if returncode == 0:
-        # Look for success indicators in stdout
         success_indicators = [
             '[+]',
             'STATUS_SUCCESS',
@@ -355,18 +338,15 @@ def validate_credentials(targets, usernames, passwords, hashes, local_auth=False
     print_info("Starting credential validation phase...")
     print_info(f"Testing {len(usernames)} usernames against {len(targets)} targets")
     
-    valid_credentials = defaultdict(list)  # target -> [(username, password/hash, protocol, is_admin)]
+    valid_credentials = defaultdict(list) 
     
-    # Create all credential combinations
     all_creds = []
     
-    # Password combinations
     if passwords:
         for username in usernames:
             for password in passwords:
                 all_creds.append((username, password, None, 'password'))
     
-    # Hash combinations
     if hashes:
         for username in usernames:
             for hash_val in hashes:
@@ -374,7 +354,6 @@ def validate_credentials(targets, usernames, passwords, hashes, local_auth=False
     
     print_info(f"Total credential combinations to test: {len(all_creds)}")
     
-    # Test each protocol for credential validation
     for protocol in VALIDATION_PROTOCOLS:
         print_colored(f"\n[*] Validating credentials using {protocol.upper()} protocol...", Colors.BLUE + Colors.BOLD)
         
@@ -382,23 +361,19 @@ def validate_credentials(targets, usernames, passwords, hashes, local_auth=False
             print_warning("No credentials to test")
             continue
             
-        # Prepare command for batch credential testing
         for target in targets:
             print_info(f"Testing {protocol.upper()} on {target}")
             
-            # Create temporary files for batch testing
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
             temp_user_file = f"/tmp/users_{timestamp}.txt"
             temp_pass_file = f"/tmp/passwords_{timestamp}.txt" if passwords else None
             temp_hash_file = f"/tmp/hashes_{timestamp}.txt" if hashes else None
             
             try:
-                # Write usernames to temp file
                 with open(temp_user_file, 'w') as f:
                     for username in usernames:
                         f.write(f"{username}\n")
                 
-                # Test with passwords if available
                 if passwords and temp_pass_file:
                     with open(temp_pass_file, 'w') as f:
                         for password in passwords:
@@ -413,31 +388,21 @@ def validate_credentials(targets, usernames, passwords, hashes, local_auth=False
                     try:
                         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
                         if result.stdout:
-                            # Parse successful authentications
                             for line in result.stdout.split('\n'):
                                 if '[+]' in line and not 'STATUS_LOGON_FAILURE' in line:
-                                    # Look for credential patterns in NetExec output
-                                    # Examples:
-                                    # SMB: [+] oscp.exam\celia.almeda:e728ecbadfb02f51ce8eed753f3ff3fd
-                                    # LDAP: LDAP 10.10.140.140 389 DC01 [+] oscp.exam\celia.almeda:e728ecbadfb02f51ce8eed753f3ff3fd
                                     try:
-                                        # Find everything after [+] 
                                         plus_index = line.find('[+]')
                                         if plus_index != -1:
                                             after_plus = line[plus_index + 3:].strip()
                                             
-                                            # Look for domain\username:credential pattern
                                             if ':' in after_plus:
-                                                # Split on the last colon to separate user and credential
                                                 user_part, credential = after_plus.rsplit(':', 1)
                                                 
-                                                # Extract username (remove domain if present)
                                                 if '\\' in user_part:
                                                     username = user_part.split('\\')[-1]
                                                 else:
                                                     username = user_part
                                                 
-                                                # Clean up any extra whitespace or characters
                                                 username = username.strip()
                                                 credential = credential.strip()
                                                 
@@ -456,7 +421,6 @@ def validate_credentials(targets, usernames, passwords, hashes, local_auth=False
                     except Exception as e:
                         print_error(f"Error during batch password testing: {e}")
                 
-                # Test with hashes if available
                 if hashes and temp_hash_file:
                     with open(temp_hash_file, 'w') as f:
                         for hash_val in hashes:
@@ -471,31 +435,21 @@ def validate_credentials(targets, usernames, passwords, hashes, local_auth=False
                     try:
                         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
                         if result.stdout:
-                            # Parse successful authentications
                             for line in result.stdout.split('\n'):
                                 if '[+]' in line and not 'STATUS_LOGON_FAILURE' in line:
-                                    # Look for credential patterns in NetExec output
-                                    # Examples:
-                                    # SMB: [+] oscp.exam\celia.almeda:e728ecbadfb02f51ce8eed753f3ff3fd
-                                    # LDAP: LDAP 10.10.140.140 389 DC01 [+] oscp.exam\celia.almeda:e728ecbadfb02f51ce8eed753f3ff3fd
                                     try:
-                                        # Find everything after [+] 
                                         plus_index = line.find('[+]')
                                         if plus_index != -1:
                                             after_plus = line[plus_index + 3:].strip()
                                             
-                                            # Look for domain\username:credential pattern
                                             if ':' in after_plus:
-                                                # Split on the last colon to separate user and credential
                                                 user_part, hash_val = after_plus.rsplit(':', 1)
                                                 
-                                                # Extract username (remove domain if present)
                                                 if '\\' in user_part:
                                                     username = user_part.split('\\')[-1]
                                                 else:
                                                     username = user_part
                                                 
-                                                # Clean up any extra whitespace or characters
                                                 username = username.strip()
                                                 hash_val = hash_val.strip()
                                                 
@@ -515,7 +469,6 @@ def validate_credentials(targets, usernames, passwords, hashes, local_auth=False
                         print_error(f"Error during batch hash testing: {e}")
             
             finally:
-                # Clean up temporary files
                 for temp_file in [temp_user_file, temp_pass_file, temp_hash_file]:
                     if temp_file and os.path.exists(temp_file):
                         try:
@@ -523,14 +476,12 @@ def validate_credentials(targets, usernames, passwords, hashes, local_auth=False
                         except:
                             pass
     
-    # Remove duplicates and organize results
     unique_credentials = defaultdict(set)
     for target in valid_credentials:
         for username, password, hash_val, protocol, is_admin in valid_credentials[target]:
             cred_key = (username, password, hash_val, is_admin)
             unique_credentials[target].add(cred_key)
     
-    # Convert back to list format
     final_credentials = defaultdict(list)
     for target in unique_credentials:
         for username, password, hash_val, is_admin in unique_credentials[target]:
@@ -546,11 +497,9 @@ def run_enumeration(protocol, target, username, password, hash_val, output_file,
     """Run enumeration for a successful credential pair"""
     print_info(f"Running enumeration for {protocol.upper()} on {target} with {username}:{password if password else '[hash]'}")
     
-    # Get protocol-specific parameters with target
     enum_params = get_enum_params(target, username)
     admin_modules = get_admin_modules(target, username)
     
-    # Initial connection test and logging
     returncode, stdout, stderr = run_netexec_command(protocol, target, username, password, hash_val, local_auth=local_auth)
     initial_cmd = build_command_string(protocol, target, username, password, hash_val, local_auth=local_auth)
     
@@ -564,14 +513,12 @@ def run_enumeration(protocol, target, username, password, hash_val, output_file,
             'type': 'initial'
         })
         
-        # Check for admin privileges and null auth
         is_admin = is_admin_user(stdout)
         is_null_auth = (not username or username == '') and (not password or password == '') and not hash_val
         
         if is_admin:
             print_admin(f"ADMIN PRIVILEGES DETECTED on {protocol.upper()}")
             
-            # Run admin modules if available for this protocol
             if protocol in admin_modules:
                 print_success(f"Running admin modules for {protocol.upper()}...")
                 
@@ -620,7 +567,6 @@ def run_enumeration(protocol, target, username, password, hash_val, output_file,
                 else:
                     print_error(f"No results for null auth module {param_str}")
         
-        # Run standard enumeration commands for this protocol
         if protocol in enum_params:
             for param_group in enum_params[protocol]:
                 param_str = ' '.join(param_group)
@@ -673,16 +619,13 @@ def create_summary_report(all_results, summary_file):
             
             target_results = all_results[target]
             
-            # Summary of successful protocols
             successful_protocols = list(target_results.keys())
             f.write(f"Successful Protocols: {', '.join(successful_protocols)}\n\n")
             
-            # Detailed findings per protocol
             for protocol in successful_protocols:
                 f.write(f"  {protocol.upper()}:\n")
                 protocol_data = target_results[protocol]
                 
-                # Credentials
                 if protocol_data.get('hash'):
                     f.write(f"    Credentials: {protocol_data['username']}:[hash]\n")
                 else:
@@ -691,7 +634,6 @@ def create_summary_report(all_results, summary_file):
                 if protocol_data.get('is_admin'):
                     f.write(f"    Admin Privileges: YES\n")
                 
-                # Key findings
                 all_findings = set()
                 for result in protocol_data['enumeration_results']:
                     findings = extract_key_findings(result['output'])
@@ -709,7 +651,6 @@ def create_summary_report(all_results, summary_file):
             f.write("\n")
 
 def main():
-    # Parse command line arguments
     parser = argparse.ArgumentParser(description='NetExec Lab Enumeration Script - Enhanced Edition v2.0')
     parser.add_argument('-H', '--hash', help='Hash value or path to hash file for authentication')
     parser.add_argument('-u', '--user', help='Username or path to username wordlist')
@@ -723,13 +664,11 @@ def main():
     print_colored("=" * 70, Colors.CYAN)
     print()
     
-    # Check if NetExec is installed
     if not check_netexec_installed():
         print_error("NetExec is not installed or not in PATH")
         print_colored("Install with: pip install netexec", Colors.YELLOW)
         sys.exit(1)
     
-    # Get targets
     if args.ip:
         targets = parse_targets(args.ip)
     else:
@@ -742,12 +681,10 @@ def main():
     print_info(f"Total targets to scan: {len(targets)}")
     print_info(f"Targets: {', '.join(targets[:5])}{'...' if len(targets) > 5 else ''}")
     
-    # Parse authentication credentials
     usernames = []
     passwords = []
     hashes = []
     
-    # Handle usernames
     if args.user:
         if os.path.isfile(args.user):
             usernames = load_wordlist(args.user)
@@ -761,25 +698,23 @@ def main():
         elif username_input:
             usernames = [username_input]
         else:
-            usernames = ['']  # Empty username for null auth
+            usernames = [''] 
     
-    # Handle passwords
     if args.password:
         if os.path.isfile(args.password):
             passwords = load_wordlist(args.password)
             print_info(f"Loaded {len(passwords)} passwords from file")
         else:
             passwords = [args.password]
-    elif not args.hash:  # Only ask for password if no hash provided
+    elif not args.hash:  
         password_input = input("Enter password or path to password file (press Enter for null): ").strip()
         if os.path.isfile(password_input):
             passwords = load_wordlist(password_input)
         elif password_input:
             passwords = [password_input]
         else:
-            passwords = ['']  # Empty password for null auth
+            passwords = ['']  
     
-    # Handle hashes
     if args.hash:
         if os.path.isfile(args.hash):
             hashes = load_hashlist(args.hash)
@@ -787,7 +722,6 @@ def main():
         else:
             hashes = [args.hash]
     
-    # Validate we have some form of authentication
     if not usernames:
         print_error("No usernames provided")
         sys.exit(1)
@@ -796,7 +730,6 @@ def main():
         print_warning("No passwords or hashes provided - will attempt null authentication")
         passwords = ['']
     
-    # Determine operation mode
     spray_mode = (len(usernames) > 1 or len(passwords) > 1 or len(hashes) > 1)
     
     if spray_mode:
@@ -805,7 +738,6 @@ def main():
     else:
         print_info("Single credential mode")
     
-    # Create output filenames
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     output_file = f"netexec_results_{timestamp}.txt"
     summary_file = f"netexec_summary_{timestamp}.txt"
@@ -820,7 +752,6 @@ def main():
     all_results = {}
     
     if spray_mode and len(targets) > 0:
-        # Phase 1: Credential validation using batch mode with --continue-on-success
         print_colored("\n=== PHASE 1: CREDENTIAL VALIDATION ===", Colors.BOLD + Colors.YELLOW)
         valid_credentials = validate_credentials(targets, usernames, passwords, hashes, args.local)
         
@@ -833,7 +764,6 @@ def main():
         
         if args.validate_only:
             print_info("Validation-only mode enabled, skipping full enumeration")
-            # Create summary for validation results
             validation_summary = {}
             for target in valid_credentials:
                 validation_summary[target] = {}
@@ -852,7 +782,6 @@ def main():
             print_success(f"Validation summary saved to: {summary_file}")
             return
         
-        # Phase 2: Full enumeration on valid credentials
         if valid_credentials:
             print_colored("\n=== PHASE 2: FULL ENUMERATION ON VALID CREDENTIALS ===", Colors.BOLD + Colors.YELLOW)
             
@@ -860,7 +789,6 @@ def main():
                 print_colored(f"\n[*] Running full enumeration on target: {target}", Colors.BOLD + Colors.WHITE)
                 target_results = {}
                 
-                # Test each protocol with valid credentials
                 for username, password, hash_val, is_admin in valid_credentials[target]:
                     cred_str = f"{username}:{password if password else '[hash]'}"
                     print_info(f"Testing protocols with credential: {cred_str}")
@@ -873,7 +801,6 @@ def main():
                         if is_successful_connection(returncode, stdout, stderr):
                             print_success(f"SUCCESS: {protocol.upper()} connection established!")
                             
-                            # Run full enumeration
                             enumeration_results = run_enumeration(protocol, target, username, password, hash_val, output_file, args.local)
                             
                             protocol_key = f"{protocol}_{username}"
@@ -892,12 +819,10 @@ def main():
                 if target_results:
                     all_results[target] = target_results
         
-        # Fallback: Test remaining targets with single credential mode if no valid creds found
         remaining_targets = [t for t in targets if t not in valid_credentials]
         if remaining_targets:
             print_colored(f"\n=== TESTING REMAINING {len(remaining_targets)} TARGETS ===", Colors.BOLD + Colors.YELLOW)
             
-            # Use first credential combination for fallback testing
             test_username = usernames[0] if usernames else ''
             test_password = passwords[0] if passwords else ''
             test_hash = hashes[0] if hashes else None
@@ -914,7 +839,6 @@ def main():
                     if is_successful_connection(returncode, stdout, stderr):
                         print_success(f"SUCCESS: {protocol.upper()} connection established!")
                         
-                        # Run full enumeration
                         enumeration_results = run_enumeration(protocol, target, test_username, test_password, test_hash, output_file, args.local)
                         target_results[protocol] = {
                             'username': test_username,
@@ -932,7 +856,6 @@ def main():
                     all_results[target] = target_results
     
     else:
-        # Single credential mode or single target
         print_colored("\n=== SINGLE CREDENTIAL/TARGET MODE ===", Colors.BOLD + Colors.YELLOW)
         
         test_username = usernames[0] if usernames else ''
@@ -944,7 +867,6 @@ def main():
             
             target_results = {}
             
-            # Test each protocol
             for protocol in PROTOCOLS:
                 print_colored(f"\n[*] Testing {protocol.upper()} protocol on {target}...", Colors.BLUE + Colors.BOLD)
                 
@@ -953,7 +875,6 @@ def main():
                 if is_successful_connection(returncode, stdout, stderr):
                     print_success(f"SUCCESS: {protocol.upper()} connection established!")
                     
-                    # Run full enumeration
                     enumeration_results = run_enumeration(protocol, target, test_username, test_password, test_hash, output_file, args.local)
                     target_results[protocol] = {
                         'username': test_username,
@@ -967,14 +888,11 @@ def main():
                     if stderr:
                         print_error(f"Error: {stderr}")
             
-            # Store results for this target
             if target_results:
                 all_results[target] = target_results
     
-    # Create summary report
     create_summary_report(all_results, summary_file)
     
-    # Final summary
     print_colored("\n" + "=" * 70, Colors.CYAN)
     print_colored("FINAL ENUMERATION SUMMARY", Colors.BOLD + Colors.CYAN)
     print_colored("=" * 70, Colors.CYAN)
