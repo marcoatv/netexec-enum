@@ -24,28 +24,24 @@ pip install netexec
 # Clone this repository
 git clone https://github.com/marcoatv/netexec-enum
 
-cd netexec-enum
-
-chmod +x netexec-enum.py
-
 ## Usage
 
 ### Basic Examples
 
 #### Single target with credentials
-`python3 netexec_enhanced.py -i 192.168.1.100 -u admin -p password123`
+`python3 netexec-enum.py -i 192.168.1.100 -u admin -p password123`
 
 #### Multiple targets with wordlists
-`python3 netexec_enhanced.py -i "192.168.1.1,192.168.1.5,192.168.1.10" -u users.txt -p passwords.txt`
+`python3 netexec-enum.py -i "192.168.1.1,192.168.1.5,192.168.1.10" -u users.txt -p passwords.txt`
 
 #### CIDR range with hash authentication
-`python3 netexec_enhanced.py -i 192.168.1.0/24 -u users.txt -H hashes.txt`
+`python3netexec-enum.py -i 192.168.1.0/24 -u users.txt -H hashes.txt`
 
 #### Target file with local authentication
-`python3 netexec_enhanced.py -i targets.txt -u admin -p password --local`
+`python3 netexec-enum.pyy -i targets.txt -u admin -p password --local`
 
 #### Credential validation only (no full enumeration)
-`python3 netexec_enhanced.py -i 192.168.1.0/24 -u users.txt -p passwords.txt --validate-only`
+`python3 netexec-enum.py -i 192.168.1.0/24 -u users.txt -p passwords.txt --validate-only`
 
 ### Command Line Options
 
