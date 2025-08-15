@@ -35,6 +35,7 @@ def get_enum_params(target, username):
             ['--groups'],
             ['--computer'],
             ['--loggedon-users'],
+            ['--rid-brute'],
             ['--sessions'],
             ['-M', 'spider_plus'],
             ['-x', 'net user'],
@@ -941,3 +942,4 @@ if __name__ == "__main__":
     except Exception as e:
         print_error(f"An error occurred: {str(e)}")
         sys.exit(1)
+
