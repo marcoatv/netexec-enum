@@ -31,6 +31,9 @@ git clone https://github.com/marcoatv/netexec-enum.git
 #### Single target with credentials
 `python3 netexec-enum.py -i 192.168.1.100 -u admin -p password123`
 
+#### Single target with guest
+`python3 netexec-enum.py -i 192.168.1.100 -u guest`
+
 #### Multiple targets with wordlists
 `python3 netexec-enum.py -i "192.168.1.1,192.168.1.5,192.168.1.10" -u users.txt -p passwords.txt`
 
