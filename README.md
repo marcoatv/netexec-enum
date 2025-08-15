@@ -1,19 +1,17 @@
 # netexec-enum
 An advanced Python automation tool for penetration testers that streamlines NetExec credential validation and enumeration across multiple targets and protocols.
 
-# NetExec Enhanced Enumeration Script
+# NetExec Enumeration Script
 
 An advanced automation tool for penetration testers that streamlines NetExec credential validation and enumeration across multiple targets and protocols.
 
 ## Features
 
 - **Multi-Target Support**: Single IPs, CIDR notation, comma-separated lists, or target files
-- **Intelligent Credential Validation**: Batch testing with `--continue-on-success` before enumeration
+- **Credential Validation**: Batch testing with `--continue-on-success` before enumeration
 - **Multiple Authentication Methods**: Password lists, hash files, or single credentials
-- **Comprehensive Protocol Coverage**: SMB, LDAP, WinRM, SSH, MSSQL, WMI, FTP, VNC, RDP
-- **Advanced Enumeration**: Automatic admin privilege detection and specialized modules
-- **Robust Error Handling**: Gracefully handles NetExec internal errors
-- **Detailed Reporting**: Structured logs and executive summaries
+- **Multiple Protocol Coverage**: SMB, LDAP, WinRM, SSH, MSSQL, WMI, FTP, VNC, RDP
+- **Admin Enumeration**: Automatic admin privilege detection and specialized modules
 
 ## Installation
 
