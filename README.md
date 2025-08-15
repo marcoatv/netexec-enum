@@ -86,10 +86,10 @@ git clone https://github.com/marcoatv/netexec-enum.git
 
 #### SMB Protocol
 - Share enumeration (`--shares`)
-- User enumeration (`--users`, `--groups`)
+- User enumeration (`--users`, `--groups`,  `--rid-brute` )
 - Computer information (`--computer`)
 - Session information (`--loggedon-users`, `--sessions`)
-- Advanced modules (`spider_plus`, `lsassy` for admins)
+- Advanced modules (`spider_plus`, `lsassy`, `--ntds`, `--dpapi`, `--sam`, `--lsa` for admins)
 
 #### LDAP Protocol
 - Domain enumeration (`--users`, `--groups`)
