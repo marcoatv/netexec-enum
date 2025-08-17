@@ -48,7 +48,7 @@ def get_enum_params(target, username):
             ['-x', 'net localgroup administrators'],
             ['-x', 'whoami /priv'],
             ['-M', 'mssql_priv'],
-            ['-M', 'mssql_priv', '-o', ACTION=privesc]
+            ['-M', 'mssql_priv', '-o', 'ACTION=privesc']
         ],
         'winrm': [
             ['-x', 'net localgroup administrators'],
@@ -942,5 +942,6 @@ if __name__ == "__main__":
     except Exception as e:
         print_error(f"An error occurred: {str(e)}")
         sys.exit(1)
+
 
 
